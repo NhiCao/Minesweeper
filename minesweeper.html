@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<script src="angular.min.js"></script>
+<head>
+	<style type="text/css">
+		.minefield {
+		    line-height:0;
+		    border-spacing:0;
+		}
+
+		.minefield td {
+	    	padding:0
+		}
+	</style>
+</head>
+
+<body>
+	<div ng-app="myApp" ng-controller="minesweeperCtrl">
+		<table class="minefield" style="border: 2px solid black">
+			<tr>
+				<td colspan="9" align="center" style="border: 2px solid black">
+					<img ng-if="status == 'continue'"
+					     src="./images_minesweeper/smile.png">
+					<img ng-if="status == 'lose'"
+					     src="./images_minesweeper/sad.png">
+					<img ng-if="status == 'win'"
+					     src="./images_minesweeper/win.png">
+				</td>
+			</tr>
+			
+		    <tr ng-repeat="row in minefield.rows">
+		        <td ng-repeat="spot in row.spots" 
+		            ng-click="isContinue(spot); uncoverArea(minefield, minefield.rows.indexOf(row), row.spots.indexOf(spot))"
+		            ng-right-click="flag(minefield, minefield.rows.indexOf(row), row.spots.indexOf(spot))">
+		        	<img ng-if="spot.isCovered && spot.flag == false" 
+		        	     src="./images_minesweeper/covered.png">
+				    <img ng-if="!spot.isCovered && spot.content == 'empty'" 
+				         src="./images_minesweeper/empty.png">
+				    <img ng-if="!spot.isCovered && spot.content == 'mine'" 
+				         src="./images_minesweeper/mine.png"> 
+				    <img ng-if="spot.isCovered && spot.flag == true" 
+				         src="./images_minesweeper/flag-mine.png">
+
+				    <img ng-if="!spot.isCovered && spot.content == 1" 
+				         src="./images_minesweeper/number-1.png">
+				    <img ng-if="!spot.isCovered && spot.content == 2" 
+				         src="./images_minesweeper/number-2.png">
+				    <img ng-if="!spot.isCovered && spot.content == 3" 
+				         src="./images_minesweeper/number-3.png">
+				    <img ng-if="!spot.isCovered && spot.content == 4" 
+				         src="./images_minesweeper/number-4.png">
+				    <img ng-if="!spot.isCovered && spot.content == 5" 
+				         src="./images_minesweeper/number-5.png">
+				    <img ng-if="!spot.isCovered && spot.content == 6" 
+				         src="./images_minesweeper/number-6.png">
+				    <img ng-if="!spot.isCovered && spot.content == 7" 
+				         src="./images_minesweeper/number-7.png">
+				    <img ng-if="!spot.isCovered && spot.content == 8" 
+				         src="./images_minesweeper/number-8.png"> 
+		        </td>
+		    </tr>
+		</table>
+	</div>
+
+
+	<script>
+		var app = angular.module('myApp', []);
+		app.controller('minesweeperCtrl', function($scope) {
+			$scope.status = "continue";
+			
+		    function createMinefield() {
+			    var minefield = {};
+			    minefield.rows = [];
+			    
+			    for(var i = 0; i < 9; i++) {
+			        var row = {};
+			        row.spots = [];
+			        
+			        for(var j = 0; j < 9; j++) {
+			            var spot = {};
+			            spot.isCovered = true;
+			            spot.content = "empty";
+			            spot.flag = false;
+			            row.spots.push(spot);
+			        }
+			        
+			        minefield.rows.push(row);
+		        }
+
+		        placeManyRandomMines(minefield);
+		        calculateAllNumbers(minefield);
+	    		return minefield;
+	    	}
+
+	    	function getSpot(minefield, row, column) {
+		    	return minefield.rows[row].spots[column];
+			}
+
+			function placeRandomMine(minefield) {
+			    var row = Math.round(Math.random() * 8);
+			    var column = Math.round(Math.random() * 8);
+			    var spot = getSpot(minefield, row, column);
+			    spot.content = "mine";
+			}
+
+			function placeManyRandomMines(minefield) {
+			    for(var i = 0; i < 10; i++) {
+			        placeRandomMine(minefield);
+			    }
+			}
+
+			function calculateNumber(minefield, row, column) {
+				var mineCount = 0;
+				var currentSpot = getSpot(minefield, row, column);
+				if(currentSpot.content == "empty"){
+					for(var i = -1; i <= 1; i++){
+						for(var j = -1; j <= 1; j++){
+							var newRow = row+i;
+							var newColumn = column+j;
+							if(newRow >= 0 && newRow <= 8 && newColumn >= 0 && newColumn <= 8){
+								var neighbouredSpot = getSpot(minefield, newRow, newColumn);
+								if(neighbouredSpot.content == "mine"){
+									mineCount++;
+								}
+							}
+						}
+					}
+					if(mineCount > 0){
+						currentSpot.content = mineCount + "";
+					}
+				}
+				return mineCount;
+			}
+
+			function calculateAllNumbers(minefield) {
+			    for(var y = 0; y < 9; y++) {
+			        for(var x = 0; x < 9; x++) {
+			            calculateNumber(minefield, x, y);
+			        }
+			    }
+			}
+
+			$scope.uncoverArea = function(minefield, row, column){
+				var currentSpot = getSpot(minefield, row, column);
+				if($scope.status == "continue"){
+					if(currentSpot.content == "empty"){
+						for(var i = -1; i <= 1; i++){
+							for(var j = -1; j <= 1; j++){
+								var newRow = row+i;
+								var newColumn = column+j;
+								if(newRow >= 0 && newRow <= 8 && newColumn >= 0 && newColumn <= 8){
+									var neighbouredSpot = getSpot(minefield, newRow, newColumn);
+									neighbouredSpot.isCovered = false;
+									//$scope.uncoverArea(minefield, newRow, newColumn);
+								}								
+							}
+						}
+						if(isWin(minefield) == true){
+							$scope.status = "win";
+						}
+					}
+					else if(currentSpot.content == "mine"){
+						for(var y = 0; y < 9; y++) {
+					        for(var x = 0; x < 9; x++) {
+					            var spot = getSpot(minefield, y, x);
+					            if(spot.content == "mine"){
+					            	spot.isCovered = false;
+					            }
+					        }
+					    }
+					    $scope.status = "lose";
+					}
+					else{
+						if(isWin(minefield) == true){
+							$scope.status = "win";
+						}
+					}
+				}
+			}
+
+			$scope.isContinue = function(spot){
+				if($scope.status == "continue"){
+					spot.isCovered = false;
+				}
+			}
+
+			function isWin(minefield){
+				var mineCount = 0;
+				var coveredCellCount = 0;
+				for(var y = 0; y < 9; y++) {
+			        for(var x = 0; x < 9; x++) {
+			            var currentSpot = getSpot(minefield, y, x);
+			            if(currentSpot.isCovered == true){
+			            	coveredCellCount++;
+			            }
+			            if(currentSpot.content == "mine"){
+			            	mineCount++;
+			            }
+			        }
+			    }
+			    if(coveredCellCount == mineCount){
+			    	return true;
+			    }
+			    else{
+			    	return false;
+			    }
+			}
+
+			$scope.flag = function(minefield, row, column){
+				if($scope.status == "continue"){
+					var currentSpot = getSpot(minefield, row, column);
+					if(currentSpot.flag == false)
+						currentSpot.flag = true;
+					else
+						currentSpot.flag = false;
+				}
+			}
+
+	    	$scope.minefield = createMinefield();
+
+		});
+
+		app.directive('ngRightClick', function($parse) {
+		    return function(scope, element, attrs) {
+		        var fn = $parse(attrs.ngRightClick);
+		        element.bind('contextmenu', function(event) {
+		            scope.$apply(function() {
+		                event.preventDefault();
+		                fn(scope, {$event:event});
+		            });
+		        });
+		    };
+		});
+
+	</script>
+ 
+</body>
+</html>
